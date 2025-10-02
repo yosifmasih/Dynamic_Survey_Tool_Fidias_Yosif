@@ -1,7 +1,10 @@
-
 #include "algorithm.hpp"
 #include <cmath>
 #include <algorithm>
+
+#ifndef DST_PI
+constexpr float DST_PI = 3.14159265358979323846f;
+#endif
 
 namespace dst {
 
@@ -13,24 +16,24 @@ Heading Algorithm::compute_heading_(const Vec3& a, const Vec3& m) {
     float mTotal = std::sqrt(m.x * m.x + m.y * m.y + m.z * m.z);
     const float eps = 1e-6; //avoid dividing by zero
 
-    float gTotal = std::max(gTotal,eps);
-    float mTotal = std::max(mTotal,eps);
+    gTotal = std::max(gTotal,eps);
+    mTotal = std::max(mTotal,eps);
     //hello
     // inclination (degrees)
-    float incl = std::acos(a.z / gTotal) * (180.0f / float(M_PI));
+    float incl = std::acos(a.z / gTotal) * (180.0f / float(DST_PI));
 
     // azimuth (degrees)
     float az_numerator = ((a.x*m.y) - (a.y*m.x)) * gTotal;
     float az_denom1 = m.z*(a.x*a.x + a.y*a.y);
     float az_denom2 = a.z*(a.x*m.x + a.y*m.y);
-    float azim = (std::atan2(az_numerator, az_denom1-az_denom2) * (180.0f / float(M_PI)));
+    float azim = (std::atan2(az_numerator, az_denom1-az_denom2) * (180.0f / float(DST_PI)));
     if (azim < 0.0f) {
         azim += 360.0f;
     }
 
     // magnetic dip angle (degrees)
     float dip_num = a.x*m.x + a.y*m.y + a.z*m.z;
-    float dip = std::asin((dip_num) / (gTotal*mTotal)) * (180.0f / float(M_PI));
+    float dip = std::asin((dip_num) / (gTotal*mTotal)) * (180.0f / float(DST_PI));
 
     // fill in the Heading struct
     heading.inclination_deg = incl;
@@ -54,6 +57,19 @@ void Algorithm::init(const AlgoConfig& cfg){
     ra_hi_x_.reset(new RollingWindow(A)); ra_hi_y_.reset(new RollingWindow(A)); ra_hi_z_.reset(new RollingWindow(A));
     ra_mx_.reset(new RollingWindow(M)); ra_my_.reset(new RollingWindow(M)); ra_mz_.reset(new RollingWindow(M));
 
+    //Kalman filter setup, later these values will be tweaked by calibration
+    kf_cfg_.q_acc = 1.0f;
+    kf_cfg_.q_mag = 1.0f;
+    kf_cfg_.r_acc = 1.0f;
+    kf_cfg_.r_mag = 1.0f;
+    kf_cfg_.p0_acc = 10.0f * kf_cfg_.r_acc;
+    kf_cfg_.P0_mag = 10.0f * kf_cfg_.r_mag;
+    kf_cfg_.lambda_norm = 0.1f;     //lambda will be tuned through testing
+
+    kf_cfg_.g0 = 1.0f;  //1g
+    kf_cfg_.b0 = 56.0f; //56uT, this will also be set through calibration
+
+    kf_.init(kf_cfg_);
 }
 
 void Algorithm::reset(){
@@ -94,6 +110,13 @@ AlgoOutputs Algorithm::update(const MultiSample& s){
     ra_mid_x_->push(s.acc_med.x); ra_mid_y_->push(s.acc_med.y); ra_mid_z_->push(s.acc_med.z);
     ra_hi_x_->push(s.acc_hi.x); ra_hi_y_->push(s.acc_hi.y); ra_hi_z_->push(s.acc_hi.z);
     ra_mx_->push(s.mag.x); ra_my_->push(s.mag.y); ra_mz_->push(s.mag.z);
+    
+    //we will also run KF for every sample, but only use it for heading if we are in pipeline 3
+    float z[6];
+    kf_.pack_meas(s.acc_lo.x,s.acc_lo.y,s.acc_lo.z,s.mag.x,s.mag.y,s.mag.z, z);
+    kf_.predict();
+    kf_.update(z);
+    kf_.apply_norm_const();
 
     //5.1) Pumps Off. low range accel for G and little to no filtering (can change once we have the accels)
     if (final_label == DrillClass::PumpsOff){
@@ -106,7 +129,10 @@ AlgoOutputs Algorithm::update(const MultiSample& s){
         output.heading = compute_heading_(acc_ra, mag_ra);
 
     } else if (final_label == DrillClass::RotatingDrilling || final_label == DrillClass::SlidingDrilling){
-
+        float ax, ay, az, mx, my, mz;
+        kf_.get_accel(ax, ay, az);
+        kf_.get_mag(mx, my, mz);
+        output.heading = compute_heading_({ax,ay,az},{mx,my,mz});
     }
 
     //6) heading and logging

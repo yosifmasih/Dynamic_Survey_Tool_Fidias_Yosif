@@ -1,11 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <memory>
-#include "types.hpp"
-#include "features.hpp"
-#include "detectors.hpp"
-#include "ml.hpp"
-#include "ml_postproc.hpp"
+#include "dst/types.hpp"
+#include "dst/features.hpp"
+#include "dst/detectors.hpp"
+#include "dst/ml.hpp"
+#include "dst/ml_postproc.hpp"
+#include "dst/kalman.hpp"
 
 namespace dst{
 
@@ -51,6 +52,8 @@ private:
     RotationFlowDetector det_{DetectorConfig{}};
     StateML ml_{};
     MLPostProcessor post_{};
+    Kalman6 kf_;
+    KFConfig kf_cfg_;
 
     std::unique_ptr<RollingWindow> ra_lo_x_, ra_lo_y_,ra_lo_z_;
     std::unique_ptr<RollingWindow> ra_mid_x_, ra_mid_y_,ra_mid_z_;
