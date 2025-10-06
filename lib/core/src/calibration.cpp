@@ -3,7 +3,7 @@
 
 namespace dst {
 
-CalResults StandstillCalibration::finalize() const{
+CalResults StandstillCalibration::finalize(const AxisCal* mag_cal) const{
     CalResults out{};
     if (count_ <= 0) return out;
 
@@ -23,6 +23,15 @@ CalResults StandstillCalibration::finalize() const{
     out.acc_lo.bias = {m_lo.x, m_lo.y, m_lo.z - G};
     out.acc_med.bias = {m_med.x, m_med.y, m_med.z - G};
     out.acc_hi.bias = {m_hi.x, m_hi.y, m_hi.z - G};
+
+    //since we will calibrate mag before this, we can also compute b0 (earths mag field) at a standstill
+    if(mag_cal) {
+        Vec3 m = mag_.mean();
+        const float mx = (m.x - mag_cal->bias.x) / mag_cal->scale.x;
+        const float my = (m.y - mag_cal->bias.y) / mag_cal->scale.y;
+        const float mz = (m.z - mag_cal->bias.z) / mag_cal->scale.z;
+        out.b0 = std::sqrt(mx*mx + my*my + mz*mz);
+    }
 
     return out;
 }

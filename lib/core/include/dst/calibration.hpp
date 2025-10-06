@@ -55,7 +55,7 @@ public:
         mag_.push(s.mag); 
         count_++;
     }    
-    CalResults finalize() const;        //acccel biases and variances(accel/mag)
+    CalResults finalize(const AxisCal* mag_cal=nullptr) const;        //acccel biases and variances(accel/mag)
 
 private:
     CalConfig cfg_;
