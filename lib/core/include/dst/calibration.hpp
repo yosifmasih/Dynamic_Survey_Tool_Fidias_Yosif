@@ -36,6 +36,7 @@ struct AxisWin {
     Vec3 var() const {return{x.var_sample(),y.var_sample(),z.var_sample()};}
 };
 
+// Phase A: standstill collector for the accelerometers mainly
 class StandstillCalibration {
 public:
     explicit StandstillCalibration (const CalConfig& cfg)
