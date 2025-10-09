@@ -27,8 +27,8 @@ namespace dst {
     void MagSweepCalibration::finalize(CalResults& r) {
         if (count_ <= 0) return;
 
-        Vec3 mid { (max_.x+min_.x)/2.0, (max_.y+min_.y)/2.0, (max_.z+min_.z)/2.0 };
-        Vec3 field { (max_.x-min_.x)/2.0, (max_.y-min_.y)/2.0, (max_.z-min_.z)/2.0 };
+        Vec3 mid { (max_.x+min_.x)*0.5f, (max_.y+min_.y)*0.5f, (max_.z+min_.z)*0.5f };
+        Vec3 field { (max_.x-min_.x)*0.5f, (max_.y-min_.y)*0.5f, (max_.z-min_.z)*0.5f };
 
         r.mag.bias = mid;       //hard iron offsets
         r.mag.scale = field;    //soft scaling factor

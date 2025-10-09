@@ -23,6 +23,8 @@ CalResults StandstillCalibration::finalize(const AxisCal* mag_cal) const{
     out.acc_lo.bias = {m_lo.x, m_lo.y, m_lo.z - G};
     out.acc_med.bias = {m_med.x, m_med.y, m_med.z - G};
     out.acc_hi.bias = {m_hi.x, m_hi.y, m_hi.z - G};
+    const float gnorm = std::sqrt(m_lo.x*m_lo.x + m_lo.y*m_lo.y + m_lo.z*m_lo.z);
+    out.g0 = (std::isfinite(gnorm) && gnorm > 0.1f) ? gnorm : 9.80665f;
 
     //since we will calibrate mag before this, we can also compute b0 (earths mag field) at a standstill
     if(mag_cal) {
