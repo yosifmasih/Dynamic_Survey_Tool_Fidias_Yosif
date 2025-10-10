@@ -1,4 +1,4 @@
-#include "algorithm.hpp"
+#include "dst/algorithm.hpp"
 #include <cmath>
 #include <algorithm>
 
