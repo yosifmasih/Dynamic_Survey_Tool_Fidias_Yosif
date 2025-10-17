@@ -1,9 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
  *
- * PUSH TEST BY FIDIAS
- * Another push test Fidias
- * Final Push test by Fidias
+ * Push test by Fidi
  *
   ******************************************************************************
   * @file           : main.c
