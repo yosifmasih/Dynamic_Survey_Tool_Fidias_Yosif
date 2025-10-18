@@ -1,4 +1,4 @@
-#include "dst/mag_sweep_cal.hpp"
+#include "mag_sweep_cal.hpp"
 #include <algorithm>
 
 namespace dst {

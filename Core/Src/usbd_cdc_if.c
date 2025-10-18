@@ -5,11 +5,15 @@
  *      Author: yosif
  */
 
+
+
 // usb_log.h
-#pragma once
+//#pragma once
 #include <stdint.h>
+#include <string.h>
 void USB_DumpLogCSV_Header(void);
 void USB_DumpLogCSV_Record(uint32_t ms, float az_deg, float inc_deg, float dip_deg, float temp_c);
+void csv_runner_on_rx(const uint8_t* buf, uint32_t len);
 
 // usb_log.c
 #include "usbd_cdc_if.h"

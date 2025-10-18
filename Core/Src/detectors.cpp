@@ -1,4 +1,4 @@
-#include "dst/detectors.hpp"
+#include "detectors.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>

@@ -1,4 +1,11 @@
-#include "dst/algorithm.hpp"
+/*
+ * algorithm_updated.cpp
+ *
+ *  Created on: Oct 18, 2025
+ *      Author: fidia
+ */
+
+#include "algorithm.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -43,7 +50,7 @@ Heading Algorithm::compute_heading_(const Vec3& a, const Vec3& m) {
     return heading;
 }
 
-void Algorithm::init(const AlgoConfig& cfg){   
+void Algorithm::init(const AlgoConfig& cfg){
     cfg_ = cfg;
     fe_ = FeatureExtractor(cfg_.feat);
     det_ = RotationFlowDetector(cfg_.det);
@@ -103,14 +110,14 @@ AlgoOutputs Algorithm::update(const MultiSample& s){
     DrillClass final_label = post_.update(prediction, ml_inputs);
     output.ml_final = final_label;
 
-    //5) filtering pipelines 
+    //5) filtering pipelines
 
     //we will have a running average of all accels and magnetometer for further testing
     ra_lo_x_->push(s.acc_lo.x); ra_lo_y_->push(s.acc_lo.y); ra_lo_z_->push(s.acc_lo.z);
     ra_mid_x_->push(s.acc_med.x); ra_mid_y_->push(s.acc_med.y); ra_mid_z_->push(s.acc_med.z);
     ra_hi_x_->push(s.acc_hi.x); ra_hi_y_->push(s.acc_hi.y); ra_hi_z_->push(s.acc_hi.z);
     ra_mx_->push(s.mag.x); ra_my_->push(s.mag.y); ra_mz_->push(s.mag.z);
-    
+
     //we will also run KF for every sample, but only use it for heading if we are in pipeline 3
     float z[6];
     kf_.pack_meas(s.acc_lo.x,s.acc_lo.y,s.acc_lo.z,s.mag.x,s.mag.y,s.mag.z, z);
@@ -121,8 +128,8 @@ AlgoOutputs Algorithm::update(const MultiSample& s){
     //5.1) Pumps Off. low range accel for G and little to no filtering (can change once we have the accels)
     if (final_label == DrillClass::PumpsOff){
         output.heading = compute_heading_(s.acc_lo, s.mag);
-    } 
-      //5.2) Pumps On and Rotating. 
+    }
+      //5.2) Pumps On and Rotating.
       else if (final_label == DrillClass::PumpsOn || final_label == DrillClass::Rotating){
         Vec3 acc_ra = {ra_lo_x_->mean(), ra_lo_y_->mean(),ra_lo_z_->mean()};
         Vec3 mag_ra = {ra_mx_->mean(),ra_my_->mean(),ra_mz_->mean()};
@@ -137,7 +144,6 @@ AlgoOutputs Algorithm::update(const MultiSample& s){
 
     //6) heading and logging
 
-    
     output.input = ml_inputs;
     output.flow = flow_flag;
     output.rot = rot_flag;
@@ -146,3 +152,6 @@ AlgoOutputs Algorithm::update(const MultiSample& s){
 }
 
 } //namespace dst
+
+
+
