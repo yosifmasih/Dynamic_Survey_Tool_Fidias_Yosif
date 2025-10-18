@@ -81,6 +81,11 @@
 #include "adxl356_dual.h"               // adc_to_volt(), volt_to_g_mid/hi(), ADXL356_DualRaw, ADXL356_ReadSixChannels
 #include "adxl356_calibration.h"        // getCalibratedAccel356(...)  (your MID-range 356 bias module)
 #include "adxl356_hi_calibration.h"     // calibrateAccel356_HI(...), getCalibratedAccel356_HI(...)
+
+#include <dst_app_bridge.h>
+void csv_runner_init(void);
+void USB_DumpLogCSV_Header(void);
+
 #define T12_UP_G   3.0f   // 312 -> 356MID at >= 3 g
 #define T12_DOWN_G 2.0f   // 356MID -> 312 at <= 2 g
 
@@ -645,6 +650,13 @@ int main(void)
 
 
   MX_USB_DEVICE_Init();
+
+  dst_app_init();
+  extern void csv_runner_init(void);
+  csv_runner_init();
+  setvbuf(stdout, NULL, _IONBF, 0);   // unbuffer printf over USB CDC
+  printf("idx,incl_deg,azim_deg,dip_deg,ml_pred,ml_final,rot,flow\r\n");
+
 
 
   __HAL_RCC_GPIOG_CLK_ENABLE();
