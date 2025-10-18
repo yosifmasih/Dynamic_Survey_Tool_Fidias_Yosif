@@ -82,7 +82,7 @@
 #include "adxl356_calibration.h"        // getCalibratedAccel356(...)  (your MID-range 356 bias module)
 #include "adxl356_hi_calibration.h"     // calibrateAccel356_HI(...), getCalibratedAccel356_HI(...)
 
-#include <dst_app_bridge.h>
+#include "dst_app_bridge.h"
 void csv_runner_init(void);
 void USB_DumpLogCSV_Header(void);
 
@@ -878,6 +878,21 @@ Log_Init();
 	    	#endif
 
 	    	  //printf("Mag calibrated\r\n");
+	    	  // --- 3)
+
+	      // --- 3) Begin DST ALGO software
+
+	      DstRawSample S = {
+	          /* ax_lo,ay_lo,az_lo   */ a312x, a312y, a312z,
+	   	      /* ax_med,ay_med,az_med*/ mid_x,  mid_y,  mid_z,
+	   	      /* ax_hi,ay_hi,az_hi   */ hi_cx,  hi_cy,  hi_cz,     // if HI not present, these are 0 per your code
+	   	      /* mx,my,mz            */ mx,     my,     mz
+	      };
+
+	      static DstAlgoOut R_last;          // stash latest algo outputs
+	      DstAlgoOut R_now;
+	      dst_app_step(&S, &R_now);
+	      R_last = R_now;
 
 	      // --- 3) Tilt compensate + horizontal soft-iron scaling ---
 	      float ghat[3];  v3_norm(a_use, ghat);
@@ -939,24 +954,32 @@ Log_Init();
 	          v3_norm(g5, g5);
 
 	          // ... after you have mx,my,mz and gx,gy,gz and lmt01_edges
-	          float az_deg  = atan2f(my, mx) * (180.0f / M_PI);
+
+
+	          // OLD manual heading
+	          /*float az_deg  = atan2f(my, mx) * (180.0f / M_PI);
 	          if (az_deg < 0) az_deg += 360.0f;
 	          float norm = sqrtf(mid_x * mid_x + mid_y * mid_y + mid_z * mid_z);
 	          float gz = (norm > 0.0f) ? (mid_z / norm) : 0.0f;
 	          float inc_deg = acosf(clampf(gz, -1.0f, 1.0f)) * (180.0f / M_PI);
-float dip_deg = atan2f(mz, sqrtf(mx*mx + my*my)) * (180.0f / M_PI);
+float dip_deg = atan2f(mz, sqrtf(mx*mx + my*my)) * (180.0f / M_PI);*/
+	          float az_deg  = R_last.azim_deg;
+	          float inc_deg = R_last.incl_deg;
+	          float dip_deg = R_last.dip_deg;
+
 	          float t_c     = TEMP_PRESENT ? LMT01_PulsesToC(lmt01_edges) : NAN;
 
 #if PRINT_TO_TERMINAL
-	          printf("HDG az=%.1f inc=%.1f dip=%.1f T=%.2f C\r\n", az_deg, inc_deg, dip_deg, t_c);
+	          printf("HDG az=%.1f inc=%.1f dip=%.1f T=%.2f C\r\n", az_deg, inc_deg, dip_deg, t_c, R_last.ml_pred, R_last.ml_final, R_last.rot_flag, R_last.flow_flag);
 HAL_Delay(1000);
 	          #endif
 	          #if USE_USB_CDC
 	          {
-	            char buf[96];
+	            char buf[128];
 	            int len = snprintf(buf, sizeof(buf),
-	                               "HDG az=%.1f inc=%.1f dip=%.1f T=%.2f C\r\n",
-	                               az_deg, inc_deg, dip_deg, t_c);
+	            		"HDG az=%.1f inc=%.1f dip=%.1f T=%.2f C ml=%d->%d rot=%u flow=%u\r\n",
+	            		az_deg, inc_deg, dip_deg, t_c,
+	            		R_last.ml_pred, R_last.ml_final, R_last.rot, R_last.flow);
 	            if (len > 0) CDC_Write(buf, (uint16_t)len);
 	          }
 	          #endif
@@ -977,6 +1000,12 @@ HAL_Delay(1000);
 	          #if LOG_TO_MEMORY
 	          Log_Push(az_deg, inc_deg, dip_deg, t_c, d5, d2, d3, d4);
 	          #endif
+
+	          // reset per-second accumulators
+	          O.g_sum[0]=O.g_sum[1]=O.g_sum[2]=0;
+	          O.mh_sum[0]=O.mh_sum[1]=O.mh_sum[2]=0;
+	          O.nsamp = 0;
+	          O.t0_ms = now;
 
 	          printf("Logged to memory \r\n");
 #if RAW_DATA

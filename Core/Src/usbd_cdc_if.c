@@ -8,7 +8,7 @@
 
 
 // usb_log.h
-#pragma once
+//#pragma once
 #include <stdint.h>
 #include <string.h>
 void USB_DumpLogCSV_Header(void);
