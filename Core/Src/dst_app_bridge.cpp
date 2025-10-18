@@ -1,3 +1,10 @@
+/*
+ * dst_app_bridge_corrected.cpp
+ *
+ *  Created on: Oct 18, 2025
+ *      Author: fidia
+ */
+
 // Core/Src/dst_app_bridge.cpp
 #include <dst_app_bridge.h>
 #include <cstdint>
@@ -33,6 +40,10 @@ void dst_app_step(const DstRawSample* s, DstAlgoOut* out) {
     out->ml_final  = static_cast<uint8_t>(a.ml_final);
     out->rot_flag  = a.rot;
     out->flow_flag = a.flow;
+
 }
 
 } // extern "C"
+
+
+
